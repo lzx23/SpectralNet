@@ -85,7 +85,7 @@ def plot(data, x_spectralnet):
     """
 
     num_eig = np.shape(x_spectralnet)[1]
-    fig, axs = plt.subplots(num_eig * (num_eig - 1)/2)
+    fig, axs = plt.subplots(num_eig * (num_eig - 1)//2)
 
     x_train, _, x_val, _, _, _ = data['spectral']['train_and_test']
     x = np.concatenate((x_train, x_val), axis=0)
