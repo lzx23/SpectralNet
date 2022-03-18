@@ -19,6 +19,7 @@ def orthonorm_op(x, epsilon=1e-7):
     '''
     x_2 = K.dot(K.transpose(x), x)
     x_2 += K.eye(K.int_shape(x)[1])*epsilon
+    print('x_2 = ' + str(x_2))
     L = tf.cholesky(x_2)
     ortho_weights = tf.transpose(tf.matrix_inverse(L)) * tf.sqrt(tf.cast(tf.shape(x)[0], dtype=K.floatx()))
     return ortho_weights
@@ -36,7 +37,7 @@ def Orthonorm(x, name=None):
     # get dimensionality of x
     d = x.get_shape().as_list()[-1]
     # compute orthogonalizing matrix
-    ortho_weights = orthonorm_op(x)
+    ortho_weights = orthonorm_op(x, epsilon = 1e-4)
     # create variable that holds this matrix
     ortho_weights_store = K.variable(np.zeros((d,d)))
     # create op that saves matrix into variable

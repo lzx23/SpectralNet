@@ -136,10 +136,14 @@ class SpectralNet:
         self.train_step = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate).minimize(self.loss, var_list=self.net.trainable_weights)
 
         # initialize spectralnet variables
-        K.get_session().run(tf.variables_initializer(self.net.trainable_weights))
+        # K.get_session().run(tf.variables_initializer(self.net.trainable_weights))
+        K.get_session().run(tf.initialize_all_variables())
 
     def train(self, x_train_unlabeled, x_train_labeled, x_val_unlabeled,
             lr, drop, patience, num_epochs):
+        """
+        x_train_labeled can be None
+        """
         # create handler for early stopping and learning rate scheduling
         self.lh = LearningHandler(
                 lr=lr,
@@ -166,12 +170,17 @@ class SpectralNet:
                     batches_per_epoch=100)[0]
 
             # get validation loss
+            if self.y_train_labeled_onehot is None:
+                x_labeled = None
+            else:
+                x_labeled=x_train_unlabeled[0:0]
+
             val_losses[i] = train.predict_sum(
                     self.loss,
                     x_unlabeled=x_val_unlabeled,
                     inputs=self.inputs,
                     y_true=self.y_true,
-                    x_labeled=x_train_unlabeled[0:0],
+                    x_labeled=x_labeled,
                     y_labeled=self.y_train_labeled_onehot,
                     batch_sizes=self.batch_sizes)
 
@@ -188,11 +197,19 @@ class SpectralNet:
     def predict(self, x):
         # test inputs do not require the 'Labeled' input
         inputs_test = {'Unlabeled': self.inputs['Unlabeled'], 'Orthonorm': self.inputs['Orthonorm']}
+
+        if self.y_train_labeled_onehot is None:
+            x_labeled = None
+            y_labeled = None
+        else:
+            x_labeled = x[0:0]
+            y_labeled = self.y_train_labeled_onehot[0:0]
+
         return train.predict(
                     self.outputs['Unlabeled'],
                     x_unlabeled=x,
                     inputs=inputs_test,
                     y_true=self.y_true,
-                    x_labeled=x[0:0],
-                    y_labeled=self.y_train_labeled_onehot[0:0],
+                    x_labeled=x_labeled,
+                    y_labeled=y_labeled,
                     batch_sizes=self.batch_sizes)

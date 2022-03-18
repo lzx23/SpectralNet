@@ -4,7 +4,7 @@ MNIST: 1 hr
 Reuters: 2.5 hrs
 cc: 15 min
 '''
-
+#%%
 import sys, os
 # add directories in src/ to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__),'..')))
@@ -14,7 +14,7 @@ from collections import defaultdict
 
 from core.data import get_data
 from spectralnet import run_net
-
+#%%
 # PARSE ARGUMENTS
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=str, help='gpu number to use', default='')
@@ -23,7 +23,7 @@ args = parser.parse_args()
 
 # SELECT GPU
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
-
+#%%
 params = defaultdict(lambda: None)
 
 # SET GENERAL HYPERPARAMETERS
@@ -34,7 +34,7 @@ general_params = {
         'siam_batch_size': 128,             # minibatch size for siamese net
         }
 params.update(general_params)
-
+#%%
 # SET DATASET SPECIFIC HYPERPARAMETERS
 if args.dset == 'mnist':
     mnist_params = {
@@ -169,7 +169,7 @@ elif args.dset == 'cc_semisup':
 
 # LOAD DATA
 data = get_data(params)
-
+#%%
 # RUN EXPERIMENT
 x_spectralnet, y_spectralnet = run_net(data, params)
 
