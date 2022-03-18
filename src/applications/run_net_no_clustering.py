@@ -22,12 +22,13 @@ from core import costs
 from core import networks
 from core.layer import stack_layers
 from core.util import get_scale, print_accuracy, get_cluster_sols, LearningHandler, make_layer_list, train_gen, get_y_preds
+from core import pairs
 
 import wfdb
 from collections import defaultdict
 import matplotlib.pyplot as plt
 
-def make_data(X, y = None, shuffle = True):
+def make_data(X, y = None, shuffle = True, params = None):
     """
     given X, y, splits into training and validation set and returns it in the format for run_net_no_clustering
 
@@ -44,15 +45,86 @@ def make_data(X, y = None, shuffle = True):
 
     # split into train, val sets
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size = .25, shuffle = shuffle)
+    X_train_labeled = np.empty((0, np.shape(X_train)[1]))
+    y_train_labeled = np.empty(0)
+    # X_val_labeled = np.empty((0, np.shape(X_train)[1]))
+    # y_val_labeled = np.empty(0)
 
     # make data dictionary
-    data = {}
-    data['spectral'] = {}
-    data['spectral']['train_and_test'] = X_train, y_train, X_val, y_val, None, None
-    data['spectral']['train_unlabeled_and_labeled'] = X_train, y_train, np.empty((0, np.shape(X_train)[1])), np.empty(0)
-    data['spectral']['val_unlabeled_and_labeled'] = X_val, y_val, None, None
+    ret = {}
+    ret['spectral'] = {}
+    ret['spectral']['train_and_test'] = X_train, y_train, X_val, y_val, None, None
+    ret['spectral']['train_unlabeled_and_labeled'] = X_train, y_train, X_train_labeled, y_train_labeled
+    ret['spectral']['val_unlabeled_and_labeled'] = X_val, y_val, None, None
 
-    return data
+    if params is not None and 'siamese' in params['affinity']:
+
+        ret['siamese'] = {}
+
+        if params.get('precomputedKNNPath'):
+            # if we use precomputed knn, we cannot shuffle the data; instead
+            # we pass the permuted index array and the full matrix so that
+            # create_pairs_from_unlabeled data can keep track of the indices
+            p_train_unlabeled = p_train[:len(x_train_unlabeled)]
+            train_path = params.get('precomputedKNNPath', '')
+            if train_val_split[1] < 0.09 or params['siam_k'] > 100:
+                # if the validation set is very small, the benefit of
+                # the precomputation is small, and there will be a high miss
+                # rate in the precomputed neighbors (neighbors that are not
+                # in the validation set) so we just recomputed neighbors
+                p_val_unlabeled = None
+                val_path = ''
+            else:
+                p_val_unlabeled = p_val[:len(x_val_unlabeled)]
+                val_path = params.get('precomputedKNNPath', '')
+        else:
+            # if we do not use precomputed knn, then this does not matter
+            p_train_unlabeled = None
+            train_path = params.get('precomputedKNNPath', '')
+            p_val_unlabeled = None
+            val_path = params.get('precomputedKNNPath', '')
+
+        pairs_train_unlabeled, dist_train_unlabeled = pairs.create_pairs_from_unlabeled_data(
+            x1=X_train,
+            p=p_train_unlabeled,
+            k=params.get('siam_k'),
+            tot_pairs=params.get('siamese_tot_pairs'),
+            precomputed_knn_path=train_path,
+            use_approx=params.get('use_approx', False),
+            pre_shuffled=True,
+        )
+        pairs_val_unlabeled, dist_val_unlabeled = pairs.create_pairs_from_unlabeled_data(
+            x1=X_val,
+            p=p_val_unlabeled,
+            k=params.get('siam_k'),
+            tot_pairs=params.get('siamese_tot_pairs'),
+            precomputed_knn_path=val_path,
+            use_approx=params.get('use_approx', False),
+            pre_shuffled=True,
+        )
+
+        # #get pairs for labeled data
+        # class_indices = [np.where(y_train_labeled == i)[0] for i in range(params['n_clusters'])]
+        # pairs_train_labeled, dist_train_labeled = pairs.create_pairs_from_labeled_data(x_train_labeled, class_indices)
+        # class_indices = [np.where(y_val_labeled == i)[0] for i in range(params['n_clusters'])]
+        # pairs_val_labeled, dist_val_labeled = pairs.create_pairs_from_labeled_data(x_val_labeled, class_indices)
+
+        # ret['siamese']['train_unlabeled_and_labeled'] = (pairs_train_unlabeled, dist_train_unlabeled, pairs_train_labeled, dist_train_labeled)
+        # ret['siamese']['val_unlabeled_and_labeled'] = (pairs_val_unlabeled, dist_val_unlabeled, pairs_val_labeled, dist_val_labeled)
+
+        ret['siamese']['train_unlabeled_and_labeled'] = (pairs_train_unlabeled, dist_train_unlabeled, np.empty((0, np.shape(pairs_train_unlabeled)[1])), np.empty(0))
+        ret['siamese']['val_unlabeled_and_labeled'] = (pairs_val_unlabeled, dist_val_unlabeled, np.empty((0, np.shape(pairs_val_unlabeled)[1])), np.empty(0))
+
+
+        #combine labeled and unlabeled pairs for training the siamese
+        # pairs_train = np.concatenate((pairs_train_unlabeled, pairs_train_labeled), axis=0)
+        # dist_train = np.concatenate((dist_train_unlabeled, dist_train_labeled), axis=0)
+        # pairs_val = np.concatenate((pairs_val_unlabeled, pairs_val_labeled), axis=0)
+        # dist_val = np.concatenate((dist_val_unlabeled, dist_val_labeled), axis=0)
+
+        ret['siamese']['train_and_test'] = (pairs_train_unlabeled, dist_train_unlabeled, pairs_val_unlabeled, dist_val_unlabeled)        
+
+    return ret
 
 def run_net_no_clustering(data, params):
 
