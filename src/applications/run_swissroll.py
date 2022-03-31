@@ -146,7 +146,8 @@ else:
     print("Formatting data")
     data = make_data(X, shuffle = False)
 
-n_nbrs = [5, 10, 25, 100, n]
+n_nbrs = [5, 10, 25, 100]
+scale_nbrs = [2, 5, 10, 25, 100]
 
 for nbrs in n_nbrs:
 
@@ -156,7 +157,30 @@ for nbrs in n_nbrs:
     X_r = run_net_no_clustering(data, params)
 
     print("Done. Now plotting.")
-    title = 'n_nbrs = ' + str(nbrs) + ', scale_nbrs = ' + str(params['scale_nbr'])
+    title = 'n_nbrs = ' + str(params['n_nbrs']) + ', scale_nbr = ' + str(params['scale_nbr'])
+    plot_swissroll(X, color, X_r, title = title)
+
+params['n_nbrs'] = 10
+scale_nbrs = [2, 5, 10, 25, 100]
+for nbrs in scale_nbrs:
+
+    params['scale_nbr'] = nbrs
+    print("scale_nbr = " + str(nbrs))
+    print("Running SpectralNet on swiss roll")
+    X_r = run_net_no_clustering(data, params)
+
+    print("Done. Now plotting.")
+    title = 'n_nbrs = ' + str(params['n_nbrs']) + ', scale_nbr = ' + str(params['scale_nbr'])
+    plot_swissroll(X, color, X_r, title = title)
+
+params['n_nbrs'] = 10
+params['scale_nbr'] = 2
+for _ in range(5):
+    print("Running SpectralNet on swiss roll")
+    X_r = run_net_no_clustering(data, params)
+
+    print("Done. Now plotting.")
+    title = 'n_nbrs = ' + str(params['n_nbrs']) + ', scale_nbr = ' + str(params['scale_nbr'])
     plot_swissroll(X, color, X_r, title = title)
 
 if __name__ == '__main__':

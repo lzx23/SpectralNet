@@ -138,6 +138,48 @@ def full_affinity(X, scale):
     W = K.exp(-Dx_scaled)
     return W
 
+def squared_distance_v2(X):
+    '''
+    calculate squared distance between data points, where X is a 2D numpy array
+
+    X : dataset, each row is a datapoint
+    '''
+    N = X.shape[0] # number of datapoints
+    D = np.zeros((N, N))
+
+    for i in range(N):
+        for j in range(i, N):
+            sq_dist = np.sum(np.square(X[i] - X[j]))
+            D[i, j] = sq_dist
+            D[j, i] = sq_dist
+
+    return D
+
+def full_affinity_v2(X, n_nbrs):
+    '''
+    another way to construct the affinity matrix
+
+    X : input dataset. each row is a datapoint
+    n_nbrs : number of neighbors to consider
+    '''
+
+    # flatten X
+    sample = X.reshape((X.shape[0], np.prod(X.shape[1:])))
+
+    # compute distances of the nearest neighbors
+    nbrs = NearestNeighbors(n_neighbors=n_nbrs).fit(sample)
+    distances_to_knn, _ = nbrs.kneighbors(sample) # distances to k nearest neighbors
+
+    # turn distance to kth nearest neighbor into diagonal matrix, take inverse
+    A = np.linalg.inv(np.diag(distances_to_knn[:, n_nbrs - 1]))
+
+    # get squared distances between pairs of points
+    D = squared_distance_v2(X)
+    D_scaled = A@D@A
+
+    # return affinity matrix
+    return np.exp(-D_scaled)
+
 def get_contrastive_loss(m_neg=1, m_pos=.2):
     '''
     Contrastive loss from Hadsell-et-al.'06
