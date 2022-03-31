@@ -157,7 +157,7 @@ for nbrs in n_nbrs:
 
     print("Done. Now plotting.")
     title = 'n_nbrs = ' + str(nbrs) + ', scale_nbrs = ' + str(params['scale_nbr'])
-    plot_swissroll(X, color, X_r)
+    plot_swissroll(X, color, X_r, title = title)
 
 if __name__ == '__main__':
     # generate swiss roll
