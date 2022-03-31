@@ -18,13 +18,55 @@ n = 1500
 X, color = datasets.make_swiss_roll(n_samples=n)
 
 # data = make_data(X, shuffle = False)
+
+#%%
+    # Function to plot result
+def plot_swissroll(X, color, X_r, title = "", eig1 = 0, eig2 = 1):
+    '''
+    Plots swiss roll and projected data
+
+    X : swiss roll data
+    color : colors for plot
+    X_r : projected data
+    '''
+    fig = plt.figure()
+
+    ax = fig.add_subplot(211, projection="3d")
+    ax.scatter(X[:, 0], X[:, 1], X[:, 2], c=color, cmap=plt.cm.Spectral)
+
+    ax.set_title("Original data")
+    ax = fig.add_subplot(212)
+    ax.scatter(X_r[:, eig1], X_r[:, eig2], c=color, cmap=plt.cm.Spectral)
+    plt.xlabel("Eigenvector %g" % eig1)
+    plt.ylabel("Eigenvector %g" % eig2)
+    # plt.axis("tight")
+    plt.subplots_adjust(bottom=0.1,  
+                        top=1, 
+                        wspace=0.4, 
+                        hspace=0.4)
+    plt.xticks([]), plt.yticks([])
+    plt.title("Projected data " + title)
+    plt.show()
+
 #%%
 # print("Computing LLE embedding")
 # X_r, err = manifold.locally_linear_embedding(X, n_neighbors=12, n_components=2)
 # print("Done. Reconstruction error: %g" % err)
 
 # SpectralNet for swiss roll
-siamese = True
+siamese = True                          # use siamese net or not
+num_eig = 3                                   # number of eigenvectors (also number of clusters)
+# def run_spectralnet_swissroll(X = None, color = None, siamese = True, n = 3):
+#     '''
+#     runs spectralnet on a swiss roll
+
+#     X : swiss roll data. If None, generates swiss roll data
+#     siamese: use siamese net or not
+#     n: number of eigenvectors (also number of clusters)
+#     '''
+
+if X is None:
+    X, color = datasets.make_swiss_roll(n_samples=n)
 
 params = defaultdict(lambda: None)
 
@@ -40,7 +82,7 @@ params.update(general_params)
 if siamese:
     swissroll_params = {
         # training parameters
-        'n_clusters': 2,
+        'n_clusters': num_eig,
         'use_code_space': False,
         'affinity': 'siamese',
         'n_nbrs': 10,
@@ -104,33 +146,20 @@ else:
     print("Formatting data")
     data = make_data(X, shuffle = False)
 
+n_nbrs = [5, 10, 25, 100, n]
 
-print("Running SpectralNet on swiss roll")
-X_r = run_net_no_clustering(data, params)
+for nbrs in n_nbrs:
 
-print("Done")
-#%%%
-# ----------------------------------------------------------------------
-# Plot result
+    params['n_nbrs'] = nbrs
+    print("n_nbrs = " + str(nbrs))
+    print("Running SpectralNet on swiss roll")
+    X_r = run_net_no_clustering(data, params)
 
-fig = plt.figure()
+    print("Done. Now plotting.")
+    title = 'n_nbrs = ' + str(nbrs) + ', scale_nbrs = ' + str(params['scale_nbr'])
+    plot_swissroll(X, color, X_r)
 
-ax = fig.add_subplot(211, projection="3d")
-ax.scatter(X[:, 0], X[:, 1], X[:, 2], c=color, cmap=plt.cm.Spectral)
-
-ax.set_title("Original data")
-ax = fig.add_subplot(212)
-eig1 = 0
-eig2 = 1
-ax.scatter(X_r[:, eig1], X_r[:, eig2], c=color, cmap=plt.cm.Spectral)
-plt.xlabel("Eigenvector %g" % eig1)
-plt.ylabel("Eigenvector %g" % eig2)
-# plt.axis("tight")
-plt.subplots_adjust(bottom=0.1,  
-                    top=1, 
-                    wspace=0.4, 
-                    hspace=0.4)
-plt.xticks([]), plt.yticks([])
-plt.title("Projected data")
-plt.show()
-# %%
+if __name__ == '__main__':
+    # generate swiss roll
+    n = 1500
+    X, color = datasets.make_swiss_roll(n_samples=n)
